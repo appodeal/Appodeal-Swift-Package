@@ -58,8 +58,6 @@ let package = Package(
                 .linkedFramework("SystemConfiguration"),
                 .linkedFramework("WebKit"),
                 .linkedLibrary("z"),
-                // Load ObjC categories (APDFactory+*, NS*+*) from the static core.
-                .unsafeFlags(["-Xlinker", "-ObjC"]),
             ]
         ),
 
