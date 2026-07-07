@@ -66,33 +66,33 @@ let package = Package(
         // ── Prebuilt binaries (url + checksum injected by the release lane) ──
         .binaryTarget(
             name: "Appodeal",
-            url: "https://APPODEAL_SPM_BASE_URL/Appodeal.xcframework.zip",
-            checksum: "APPODEAL_CHECKSUM"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/Appodeal.xcframework.zip",
+            checksum: "8c3ecdc794a7235d9c5e2a51ad242e55858463cd0e184c967c25f1f277a8a71c"
         ),
         .binaryTarget(
             name: "AppodealMediationCore",
-            url: "https://APPODEAL_SPM_BASE_URL/AppodealMediationCore.xcframework.zip",
-            checksum: "APPODEALMEDIATIONCORE_CHECKSUM"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/AppodealMediationCore.xcframework.zip",
+            checksum: "f49d67bb47e62477c24ba65093a84bba52334de5dbffbd848c936121259356c6"
         ),
         .binaryTarget(
             name: "StackModules",
-            url: "https://APPODEAL_SPM_BASE_URL/StackModules.xcframework.zip",
-            checksum: "STACKMODULES_CHECKSUM"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackModules.xcframework.zip",
+            checksum: "0393c62a86aab91d9ed36aeea2b9a2cc5790b901c4ca0204d8676664c8e49192"
         ),
         .binaryTarget(
             name: "StackRendering",
-            url: "https://APPODEAL_SPM_BASE_URL/StackRendering.xcframework.zip",
-            checksum: "STACKRENDERING_CHECKSUM"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackRendering.xcframework.zip",
+            checksum: "46f20e63fe9a4036213db0ce54938be5b3499fe639ff3714fe0cd1d435a683bc"
         ),
         .binaryTarget(
             name: "StackProductPresentation",
-            url: "https://APPODEAL_SPM_BASE_URL/StackProductPresentation.xcframework.zip",
-            checksum: "STACKPRODUCTPRESENTATION_CHECKSUM"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackProductPresentation.xcframework.zip",
+            checksum: "61633d4d09ef3651918dc6ada304143562f8310c28b1fa99cf80e36d3dbdd9f9"
         ),
         .binaryTarget(
             name: "StackConsentManager",
-            url: "https://APPODEAL_SPM_BASE_URL/StackConsentManager.xcframework.zip",
-            checksum: "STACKCONSENTMANAGER_CHECKSUM"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackConsentManager.xcframework.zip",
+            checksum: "0edc4d7e4527076c9da6e57b991c8555e874d105e8042d6203de04f990e9f83a"
         ),
     ]
 )
