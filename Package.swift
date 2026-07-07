@@ -65,12 +65,12 @@ let package = Package(
         .binaryTarget(
             name: "Appodeal",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/Appodeal.xcframework.zip",
-            checksum: "8c3ecdc794a7235d9c5e2a51ad242e55858463cd0e184c967c25f1f277a8a71c"
+            checksum: "29f0efbb02aaa409299b515e4c1b5fb368be107032efac5b9ef0b763ee93f723"
         ),
         .binaryTarget(
             name: "AppodealMediationCore",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/AppodealMediationCore.xcframework.zip",
-            checksum: "f49d67bb47e62477c24ba65093a84bba52334de5dbffbd848c936121259356c6"
+            checksum: "065cf8c4fc06477040d1cadc10fe0998b2d1dc73e5d650655d38eb538c42d258"
         ),
         .binaryTarget(
             name: "StackModules",
