@@ -9,6 +9,19 @@ adapters yet).
 .package(url: "https://github.com/appodeal/Appodeal-Swift-Package.git", from: "4.2.0")
 ```
 
+### Required linker flag
+
+The SDK ships as **static** xcframeworks. Add `-ObjC` to your **app target's** Other Linker
+Flags (`OTHER_LDFLAGS`) so the SDK's Objective-C categories are loaded — without it you will get
+`unrecognized selector` crashes at runtime:
+
+```
+OTHER_LDFLAGS = $(inherited) -ObjC
+```
+
+(SwiftPM cannot set this for you: version-pinned packages may not carry `unsafeFlags`, so the
+flag must live in the consuming app.)
+
 Add the `AppodealSDK` product to your target, then:
 
 ```swift
