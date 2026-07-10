@@ -5,17 +5,7 @@ let package = Package(
     name: "Appodeal",
     platforms: [.iOS(.v15)],
     products: [
-        // Core SDK
         .library(name: "Appodeal", targets: ["AppodealWrapper"]),
-        
-        // Individual adapters
-        
-        
-        // Full SDK with all adapters
-        .library(
-            name: "AppodealFull",
-            targets: ["AppodealWrapper"] + adapterTargets
-        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
@@ -23,13 +13,6 @@ let package = Package(
             url: "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
             from: "3.1.0"
         ),
-        // Adapter dependencies
-        .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", from: "11.0.0"),
-        .package(url: "https://github.com/bidon-io/bidon-sdk-ios", from: "1.0.0"),
-        .package(url: "https://github.com/AppLovin/AppLovin-MAX-SDK-iOS.git", from: "13.0.0"),
-        .package(url: "https://github.com/Unity-Technologies/unity-ads-ios", from: "4.12.0"),
-        // Note: Some SDKs like BidMachine, Meta, Yandex may not have official SPM support yet
-        // They would need to be included as binary targets or wait for official SPM releases
     ],
     targets: [
         // Core wrapper target
@@ -77,18 +60,7 @@ let package = Package(
         .binaryTarget(
             name: "StackConsentManager",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/StackConsentManager.xcframework.zip",
-            checksum: "601f4fc815707ab840bec8b91934623b2b75fe10432931a79611610b6dda77e0"
+            checksum: "643458e6ca39a9733dd71d7f246a67d577ba7c56f1994db6ebd1feae052b0997"
         ),
-        
-        // Adapter wrapper targets
-        
-        
-        // Adapter binary targets
-        
     ]
 )
-
-// Helper array for AppodealFull product
-let adapterTargets = [
-    
-]
