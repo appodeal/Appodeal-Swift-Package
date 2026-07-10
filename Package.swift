@@ -89,6 +89,6 @@ let package = Package(
 )
 
 // Helper array for AppodealFull product
-let adapterTargets = [
+let adapterTargets: [String] = [
     
 ]
