@@ -1,25 +1,21 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Appodeal SDK — Swift Package (binary distribution, core only for now).
-//
-// The core ships as prebuilt xcframeworks (Appodeal, AppodealMediationCore) hosted on S3;
-// the first-party Stack* xcframeworks are vendored the same way until they publish their own
-// SwiftPM packages. binaryTargets carry no dependencies/linker flags, so the `AppodealSDK`
-// wrapper target holds the SwiftProtobuf + UMP dependencies, the system-framework links, and
-// `-ObjC` (so the core's ObjC categories load).
-//
-// `url` + `checksum` for every binaryTarget are filled in by the release automation
-// (fastlane `swift_package` lane) at publish time. The placeholders below are replaced per
-// release; do not hand-edit.
-// ─────────────────────────────────────────────────────────────────────────────
-
 let package = Package(
-    name: "AppodealSDK",
+    name: "Appodeal",
     platforms: [.iOS(.v15)],
     products: [
-        .library(name: "AppodealSDK", targets: ["AppodealSDK"]),
+        // Core SDK
+        .library(name: "Appodeal", targets: ["AppodealWrapper"]),
+        
+        // Individual adapters
+        
+        
+        // Full SDK with all adapters
+        .library(
+            name: "AppodealFull",
+            targets: ["AppodealWrapper"] + adapterTargets
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
@@ -27,70 +23,72 @@ let package = Package(
             url: "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
             from: "3.1.0"
         ),
+        // Adapter dependencies
+        .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", from: "11.0.0"),
+        .package(url: "https://github.com/bidon-io/bidon-sdk-ios", from: "1.0.0"),
+        .package(url: "https://github.com/AppLovin/AppLovin-MAX-SDK-iOS.git", from: "13.0.0"),
+        .package(url: "https://github.com/Unity-Technologies/unity-ads-ios", from: "4.12.0"),
+        // Note: Some SDKs like BidMachine, Meta, Yandex may not have official SPM support yet
+        // They would need to be included as binary targets or wait for official SPM releases
     ],
     targets: [
+        // Core wrapper target
         .target(
-            name: "AppodealSDK",
+            name: "AppodealWrapper",
             dependencies: [
                 "Appodeal",
                 "AppodealMediationCore",
                 "StackModules",
-                "StackRendering",
+                "StackRendering", 
                 "StackProductPresentation",
                 "StackConsentManager",
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-                .product(name: "GoogleUserMessagingPlatform",
-                         package: "swift-package-manager-google-user-messaging-platform"),
-            ],
-            path: "Sources/AppodealSDK",
-            linkerSettings: [
-                .linkedFramework("AdSupport"),
-                .linkedFramework("AudioToolbox"),
-                .linkedFramework("AVFoundation"),
-                .linkedFramework("CoreGraphics"),
-                .linkedFramework("CoreLocation"),
-                .linkedFramework("CoreTelephony"),
-                .linkedFramework("ImageIO"),
-                .linkedFramework("MobileCoreServices"),
-                .linkedFramework("QuartzCore"),
-                .linkedFramework("SafariServices"),
-                .linkedFramework("StoreKit"),
-                .linkedFramework("SystemConfiguration"),
-                .linkedFramework("WebKit"),
-                .linkedLibrary("z"),
+                .product(name: "GoogleUserMessagingPlatform", 
+                        package: "swift-package-manager-google-user-messaging-platform"),
             ]
         ),
-
-        // ── Prebuilt binaries (url + checksum injected by the release lane) ──
+        
+        // Core binary targets
         .binaryTarget(
             name: "Appodeal",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/Appodeal.xcframework.zip",
-            checksum: "29f0efbb02aaa409299b515e4c1b5fb368be107032efac5b9ef0b763ee93f723"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/Appodeal.xcframework.zip",
+            checksum: "b2c16698e16db8cabc6426ca18e879aef63b96e86c68687e802493f6438a8dec"
         ),
         .binaryTarget(
-            name: "AppodealMediationCore",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/AppodealMediationCore.xcframework.zip",
-            checksum: "065cf8c4fc06477040d1cadc10fe0998b2d1dc73e5d650655d38eb538c42d258"
+            name: "AppodealMediationCore", 
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/AppodealMediationCore.xcframework.zip",
+            checksum: "e278a73de58a5b88dd14610ef5060572d816e89622b9e2c25c26cf527b0e4cc0"
         ),
         .binaryTarget(
             name: "StackModules",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackModules.xcframework.zip",
-            checksum: "0393c62a86aab91d9ed36aeea2b9a2cc5790b901c4ca0204d8676664c8e49192"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/StackModules.xcframework.zip",
+            checksum: "143050a4d5a0c2e6d11f8dd831b8494475ce3bda62a40564fb628069ce47a962"
         ),
         .binaryTarget(
             name: "StackRendering",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackRendering.xcframework.zip",
-            checksum: "46f20e63fe9a4036213db0ce54938be5b3499fe639ff3714fe0cd1d435a683bc"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/StackRendering.xcframework.zip",
+            checksum: "34c2cd2e662324d879d168300edaeee3e46876a3c06093852074f7fc6ce9a4c5"
         ),
         .binaryTarget(
             name: "StackProductPresentation",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackProductPresentation.xcframework.zip",
-            checksum: "61633d4d09ef3651918dc6ada304143562f8310c28b1fa99cf80e36d3dbdd9f9"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/StackProductPresentation.xcframework.zip",
+            checksum: "bcc8e02d91a1e6275b21837b4e8486a5be96c76698929bb12f4879aa70ae6962"
         ),
         .binaryTarget(
             name: "StackConsentManager",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.3/StackConsentManager.xcframework.zip",
-            checksum: "0edc4d7e4527076c9da6e57b991c8555e874d105e8042d6203de04f990e9f83a"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.4/StackConsentManager.xcframework.zip",
+            checksum: "601f4fc815707ab840bec8b91934623b2b75fe10432931a79611610b6dda77e0"
         ),
+        
+        // Adapter wrapper targets
+        
+        
+        // Adapter binary targets
+        
     ]
 )
+
+// Helper array for AppodealFull product
+let adapterTargets = [
+    
+]
