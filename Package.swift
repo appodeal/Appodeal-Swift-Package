@@ -5,7 +5,18 @@ let package = Package(
     name: "Appodeal",
     platforms: [.iOS(.v15)],
     products: [
-        .library(name: "Appodeal", targets: ["AppodealSDK"]),
+        .library(
+            name: "Appodeal", 
+            targets: [
+                "AppodealSDK",
+                "Appodeal",
+                "AppodealMediationCore",
+                "StackModules",
+                "StackRendering",
+                "StackProductPresentation",
+                "StackConsentManager"
+            ]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
