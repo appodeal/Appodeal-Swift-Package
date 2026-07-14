@@ -2,10 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "Appodeal",
+    name: "AppodealSDK",
     platforms: [.iOS(.v15)],
     products: [
-        .library(name: "Appodeal", targets: ["AppodealWrapper"]),
+        .library(name: "AppodealSDK", targets: ["AppodealSDK"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
@@ -15,9 +15,8 @@ let package = Package(
         ),
     ],
     targets: [
-        // Core wrapper target
         .target(
-            name: "AppodealWrapper",
+            name: "AppodealSDK",
             dependencies: [
                 "Appodeal",
                 "AppodealMediationCore",
