@@ -2,10 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "AppodealSDK",
+    name: "Appodeal",
     platforms: [.iOS(.v15)],
     products: [
-        .library(name: "AppodealSDK", targets: ["AppodealSDK"]),
+        .library(name: "Appodeal", targets: ["AppodealSDK"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
