@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "AppodealSDK",
+    name: "Appodeal",
     platforms: [.iOS(.v15)],
     products: [
         .library(name: "Appodeal", targets: ["AppodealSDK"]),
