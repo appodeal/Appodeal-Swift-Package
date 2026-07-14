@@ -29,6 +29,7 @@ let package = Package(
                         package: "swift-package-manager-google-user-messaging-platform"),
             ],
             path: "Sources/AppodealSDK",
+            resources: [.copy("PrivacyInfo.xcprivacy")],
             linkerSettings: [
                 .linkedFramework("AdSupport"),
                 .linkedFramework("AudioToolbox"),
@@ -47,36 +48,36 @@ let package = Package(
             ]
         ),
         
-        // Core binary targets
+        // Prebuilt binaries
         .binaryTarget(
             name: "Appodeal",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.5/Appodeal.xcframework.zip",
-            checksum: "6a83cdf681dced8c58bcb6f30637435383220639fa685baf37548ca101ff8647"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/Appodeal.xcframework.zip",
+            checksum: "85241578cc7439c721b5b8ac9e28be584a3bc7a4543daed37089d5b08e2c3869"
         ),
         .binaryTarget(
-            name: "AppodealMediationCore", 
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.5/AppodealMediationCore.xcframework.zip",
-            checksum: "d0e510745da7502896cb3912bda0c722a01d635739af3c4d3c8872c620a48c32"
+            name: "AppodealMediationCore",
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/AppodealMediationCore.xcframework.zip",
+            checksum: "e00a615fecfe9963849f306619d97df52e8c69bad1bb96820ae2f04e81bad449"
         ),
         .binaryTarget(
             name: "StackModules",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.5/StackModules.xcframework.zip",
-            checksum: "2829bdf8580c50c9e9fcc86ae28a8c99434f210a666c88cb76f6e7507c1c5019"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackModules.xcframework.zip",
+            checksum: "af723608bd4bac0dacd13ef10eb41f69a796918f9c46b178f2d8bc015a9b39e1"
         ),
         .binaryTarget(
             name: "StackRendering",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.5/StackRendering.xcframework.zip",
-            checksum: "503d4f52e9c00d66c48c2a199e18b07e9e5c34599d49fc70e600ea2476f7adeb"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackRendering.xcframework.zip",
+            checksum: "221d50b97bc2dcb7b4270d861927da2bf751d2d1592f138c37023c61e4741be9"
         ),
         .binaryTarget(
             name: "StackProductPresentation",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.5/StackProductPresentation.xcframework.zip",
-            checksum: "e5b7088a7b4249da9e4fd3aeb4594cc1011f34355f628920fd9f252cbdd2a8be"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackProductPresentation.xcframework.zip",
+            checksum: "65cbd5b0322457c9bedb5776edb96c0516440b210d1209957e711b5efa9a82ef"
         ),
         .binaryTarget(
             name: "StackConsentManager",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.5/StackConsentManager.xcframework.zip",
-            checksum: "53d2d7344b0d2b3eca932f57836aa5924ca72a1e0da9fd1d8347b360b8d33f17"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackConsentManager.xcframework.zip",
+            checksum: "1263cf5fbf3c33012f01839e6a8d8189b1be2c252ec426f100d969e657955a3b"
         ),
     ]
 )
