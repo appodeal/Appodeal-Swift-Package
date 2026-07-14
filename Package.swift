@@ -2,21 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "Appodeal",
+    name: "AppodealSDK",
     platforms: [.iOS(.v15)],
     products: [
-        .library(
-            name: "Appodeal", 
-            targets: [
-                "AppodealSDK",
-                "Appodeal",
-                "AppodealMediationCore",
-                "StackModules",
-                "StackRendering",
-                "StackProductPresentation",
-                "StackConsentManager"
-            ]
-        ),
+        .library(name: "Appodeal", targets: ["AppodealSDK"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
@@ -38,6 +27,23 @@ let package = Package(
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
                 .product(name: "GoogleUserMessagingPlatform", 
                         package: "swift-package-manager-google-user-messaging-platform"),
+            ],
+            path: "Sources/AppodealSDK",
+            linkerSettings: [
+                .linkedFramework("AdSupport"),
+                .linkedFramework("AudioToolbox"),
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("CoreGraphics"),
+                .linkedFramework("CoreLocation"),
+                .linkedFramework("CoreTelephony"),
+                .linkedFramework("ImageIO"),
+                .linkedFramework("MobileCoreServices"),
+                .linkedFramework("QuartzCore"),
+                .linkedFramework("SafariServices"),
+                .linkedFramework("StoreKit"),
+                .linkedFramework("SystemConfiguration"),
+                .linkedFramework("WebKit"),
+                .linkedLibrary("z"),
             ]
         ),
         
