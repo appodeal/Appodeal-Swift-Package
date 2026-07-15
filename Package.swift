@@ -21,15 +21,14 @@ let package = Package(
                 "Appodeal",
                 "AppodealMediationCore",
                 "StackModules",
-                "StackRendering", 
+                "StackRendering",
                 "StackProductPresentation",
                 "StackConsentManager",
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-                .product(name: "GoogleUserMessagingPlatform", 
-                        package: "swift-package-manager-google-user-messaging-platform"),
+                .product(name: "GoogleUserMessagingPlatform",
+                         package: "swift-package-manager-google-user-messaging-platform"),
             ],
             path: "Sources/AppodealSDK",
-            resources: [.copy("PrivacyInfo.xcprivacy")],
             linkerSettings: [
                 .linkedFramework("AdSupport"),
                 .linkedFramework("AudioToolbox"),
@@ -47,37 +46,37 @@ let package = Package(
                 .linkedLibrary("z"),
             ]
         ),
-        
+
         // Prebuilt binaries
         .binaryTarget(
             name: "Appodeal",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/Appodeal.xcframework.zip",
-            checksum: "85241578cc7439c721b5b8ac9e28be584a3bc7a4543daed37089d5b08e2c3869"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.13/Appodeal.xcframework.zip",
+            checksum: "7c8d0144bcb28d5f4dec52b2fdd45bea7612fb2922090a9dbf51c4b309b67af2"
         ),
         .binaryTarget(
             name: "AppodealMediationCore",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/AppodealMediationCore.xcframework.zip",
-            checksum: "e00a615fecfe9963849f306619d97df52e8c69bad1bb96820ae2f04e81bad449"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.13/AppodealMediationCore.xcframework.zip",
+            checksum: "cf0fe4e9a5c30fd442c4817a438042857024d78f5f2f964b3a0f6bba7443d2e4"
         ),
         .binaryTarget(
             name: "StackModules",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackModules.xcframework.zip",
-            checksum: "af723608bd4bac0dacd13ef10eb41f69a796918f9c46b178f2d8bc015a9b39e1"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.13/StackModules.xcframework.zip",
+            checksum: "79c54177032243a32cc6d3c0b9cae1fb80d16830afff52941407530a89e3047a"
         ),
         .binaryTarget(
             name: "StackRendering",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackRendering.xcframework.zip",
-            checksum: "221d50b97bc2dcb7b4270d861927da2bf751d2d1592f138c37023c61e4741be9"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.13/StackRendering.xcframework.zip",
+            checksum: "c05ff4b0d01463ef79a11936e49a109f74fe47c1944aa2220fc291ccb1c06ea2"
         ),
         .binaryTarget(
             name: "StackProductPresentation",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackProductPresentation.xcframework.zip",
-            checksum: "65cbd5b0322457c9bedb5776edb96c0516440b210d1209957e711b5efa9a82ef"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.13/StackProductPresentation.xcframework.zip",
+            checksum: "e5588d41a74690f168bd0f23dede9b54d956def7c6fb1a4e5f2644905be03653"
         ),
         .binaryTarget(
             name: "StackConsentManager",
-            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.12/StackConsentManager.xcframework.zip",
-            checksum: "1263cf5fbf3c33012f01839e6a8d8189b1be2c252ec426f100d969e657955a3b"
+            url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/4.3.0-alpha.13/StackConsentManager.xcframework.zip",
+            checksum: "2630ada490bde99c0f138ba767b8b943eed25901841a24d67c92ba38d15275fc"
         ),
     ]
 )

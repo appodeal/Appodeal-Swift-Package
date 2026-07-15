@@ -1,2 +1,3 @@
-// Re-export the Appodeal umbrella module so consumers can `import AppodealSDK`.
+// This file is required for SPM wrapper target
 @_exported import Appodeal
+@_exported import AppodealMediationCore
