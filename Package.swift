@@ -30,7 +30,7 @@ let package = Package(
                         package: "swift-package-manager-google-user-messaging-platform"),
             ],
             linkerSettings: [
-                .linkedFramework("UniformTypeIdentifiers", .when(platforms: [.iOS]))
+                .linkedFramework("MobileCoreServices", .when(platforms: [.iOS]))
             ]
         ),
         
