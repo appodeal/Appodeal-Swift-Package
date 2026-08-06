@@ -1,0 +1,122 @@
+name: Tag Release
+
+# Single source of truth for creating the version tag from Package.swift.
+#
+# Invoked two ways:
+#   - auto-tag-release.yml, on a push to main that touches Package.swift
+#   - auto-merge.yml, directly after it merges a PR
+#
+# The second caller exists because a merge performed with GITHUB_TOKEN does not
+# emit events that start other workflows, so the push trigger never fires for an
+# auto-merged release PR. Calling this workflow with `uses:` is a direct job
+# invocation rather than an event, so it is not subject to that restriction.
+#
+# Creating a tag is idempotent here: if the version already has a tag the job
+# reports it and exits successfully, so running it twice is harmless.
+
+on:
+  workflow_call:
+    inputs:
+      force:
+        description: 'Recreate the tag even if it already exists'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      version:
+        description: 'Version read from Package.swift'
+        value: ${{ jobs.tag.outputs.version }}
+      created:
+        description: 'Whether a new tag was pushed'
+        value: ${{ jobs.tag.outputs.created }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract_version.outputs.version }}
+      created: ${{ steps.create_tag.outputs.created }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Extract version from Package.swift
+        id: extract_version
+        run: |
+          # The binaryTarget URLs carry the version, e.g. .../Appodeal/4.3.7/Appodeal.xcframework.zip
+          VERSION=$(grep -oE '/[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.\-]+)?/' Package.swift | head -1 | tr -d '/')
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::No version found in Package.swift"
+            exit 1
+          fi
+
+          echo "✅ Version in Package.swift: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        id: create_tag
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+
+          if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
+            if [ "${{ inputs.force }}" = "true" ]; then
+              echo "🔄 Tag $VERSION exists, force is set — recreating"
+              git tag -d "$VERSION"
+              git push origin --delete "$VERSION" || true
+            else
+              echo "ℹ️ Tag $VERSION already exists, nothing to do"
+              echo "created=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Every line stays indented inside this block scalar. A heredoc body or
+          # terminator at column 0 would close the scalar and break the file.
+          git tag -a "$VERSION" \
+            -m "Release $VERSION" \
+            -m "Tagged from Package.swift on main." \
+            -m "Commit: ${{ github.sha }}"
+
+          git push origin "$VERSION"
+
+          echo "✅ Created and pushed tag $VERSION"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on the release PR
+        if: steps.create_tag.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.extract_version.outputs.version }}
+        run: |
+          # Find the most recently merged PR that touched Package.swift
+          PR_NUMBER=$(gh pr list --state merged --limit 10 --json number,files \
+            --jq '[.[] | select(any(.files[]; .path == "Package.swift"))][0].number')
+
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "No release PR to comment on"
+            exit 0
+          fi
+
+          REPO_URL="https://github.com/${{ github.repository }}.git"
+          {
+            echo "## 🎉 Release tag created"
+            echo
+            echo "**Version:** \`${VERSION}\`"
+            echo
+            echo '```swift'
+            echo ".package(url: \"${REPO_URL}\", exact: \"${VERSION}\")"
+            echo '```'
+          } > /tmp/comment.md
+
+          gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
