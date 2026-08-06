@@ -23,6 +23,10 @@ env:
   # then the merge is attributed to a real account and the normal push-triggered
   # automation works. Tagging does not depend on this — see the tag job below.
   GH_TOKEN: ${{ secrets.PAT_APPODEAL_RUNNER || secrets.GITHUB_TOKEN }}
+  # These jobs deliberately do not check out the repository, and gh otherwise
+  # infers the target repo from the git remote — `gh pr view 37` then dies with
+  # "fatal: not a git repository". GH_REPO supplies that context instead.
+  GH_REPO: ${{ github.repository }}
 
 jobs:
   enable-auto-merge:
@@ -72,8 +76,13 @@ jobs:
           elif [ "${{ github.event_name }}" = "check_suite" ]; then
             PR_NUMBER="${{ github.event.check_suite.pull_requests[0].number }}"
           elif [ "${{ github.event_name }}" = "workflow_run" ]; then
-            PR_NUMBER=$(gh api "/repos/${{ github.repository }}/pulls" \
-              --jq '.[] | select(.head.sha == "${{ github.event.workflow_run.head_sha }}") | .number' | head -1)
+            # Ask for the PRs associated with the commit rather than scanning the
+            # open PR list: by the time this runs the PR is often already merged,
+            # and /pulls only returns open ones — which is why this path reported
+            # "No PR associated with this event" and skipped tagging 4.3.8.
+            PR_NUMBER=$(gh api \
+              "/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
+              --jq '.[0].number')
           fi
 
           if [ -z "${PR_NUMBER:-}" ] || [ "${PR_NUMBER}" = "null" ]; then
@@ -147,7 +156,9 @@ jobs:
           # Give it a few minutes, then give up quietly — a later push to main,
           # or a manual run of Auto Tag Release, still creates the tag.
           for attempt in $(seq 1 30); do
-            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+            # Never let a transient API hiccup kill the step under `bash -e` and
+            # cost us the tag; an empty state just means "try again".
+            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state' 2>/dev/null || echo "")
             if [ "$STATE" = "MERGED" ]; then
               echo "✅ PR #${PR_NUMBER} is merged"
               echo "merged=true" >> "$GITHUB_OUTPUT"
