@@ -8,16 +8,27 @@ on:
   check_suite:
     types: [completed]
   workflow_run:
-    workflows: ["Auto-approve PRs"]
+    # Must match the `name:` of auto_approve_prs.yml exactly, otherwise this
+    # trigger silently never fires.
+    workflows: ["Auto Approve PRs"]
     types: [completed]
 
 permissions:
   pull-requests: write
   contents: write
 
+env:
+  # A merge made with GITHUB_TOKEN emits no events, so nothing downstream reacts
+  # to it. Prefer the org PAT when the repository has been granted access to it;
+  # then the merge is attributed to a real account and the normal push-triggered
+  # automation works. Tagging does not depend on this — see the tag job below.
+  GH_TOKEN: ${{ secrets.PAT_APPODEAL_RUNNER || secrets.GITHUB_TOKEN }}
+
 jobs:
   enable-auto-merge:
     runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.arm.outputs.pr }}
     if: |
       github.event_name == 'pull_request' && (
         github.event.pull_request.user.login == 'github-actions' ||
@@ -29,97 +40,134 @@ jobs:
       )
     steps:
       - name: Enable auto-merge
+        id: arm
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "📋 Enabling auto-merge for PR: $PR_URL"
           echo "👤 Created by: ${{ github.event.pull_request.user.login }}"
           echo "🌿 Branch: ${{ github.event.pull_request.head.ref }}"
-          
-          # Enable auto-merge with squash
+
           gh pr merge "$PR_URL" --auto --squash --delete-branch
-          
-          echo "✅ Auto-merge enabled for PR: $PR_URL"
+
+          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "✅ Auto-merge enabled"
 
   merge-approved:
     runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.merge.outputs.pr }}
     if: |
       (github.event_name == 'pull_request_review' && github.event.review.state == 'approved') ||
       (github.event_name == 'check_suite' && github.event.check_suite.conclusion == 'success') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Try to merge approved PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: merge
         run: |
-          # Get PR info based on event type
+          # Resolve the PR this event belongs to
           if [ "${{ github.event_name }}" = "pull_request_review" ]; then
-            PR_URL="${{ github.event.pull_request.html_url }}"
-            PR_USER="${{ github.event.pull_request.user.login }}"
-            PR_BRANCH="${{ github.event.pull_request.head.ref }}"
-          elif [ "${{ github.event_name }}" = "check_suite" ] && [ -n "${{ github.event.check_suite.pull_requests[0] }}" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          elif [ "${{ github.event_name }}" = "check_suite" ]; then
             PR_NUMBER="${{ github.event.check_suite.pull_requests[0].number }}"
-            PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
-            # Get PR details
-            PR_DATA=$(gh pr view "${PR_NUMBER}" --json author,headRefName)
-            PR_USER=$(echo "$PR_DATA" | jq -r '.author.login')
-            PR_BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
           elif [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # Find PR associated with this workflow run
-            PR_NUMBER=$(gh api /repos/${{ github.repository }}/pulls --jq '.[] | select(.head.sha == "${{ github.event.workflow_run.head_sha }}") | .number' | head -1)
-            if [ -z "$PR_NUMBER" ]; then
-              echo "No PR found for this workflow run"
-              exit 0
-            fi
-            PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
-            # Get PR details
-            PR_DATA=$(gh pr view "${PR_NUMBER}" --json author,headRefName)
-            PR_USER=$(echo "$PR_DATA" | jq -r '.author.login')
-            PR_BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
-          else
-            echo "Unsupported event type"
+            PR_NUMBER=$(gh api "/repos/${{ github.repository }}/pulls" \
+              --jq '.[] | select(.head.sha == "${{ github.event.workflow_run.head_sha }}") | .number' | head -1)
+          fi
+
+          if [ -z "${PR_NUMBER:-}" ] || [ "${PR_NUMBER}" = "null" ]; then
+            echo "No PR associated with this event"
             exit 0
           fi
-          
-          # Check if PR is from trusted source
-          if [[ "$PR_USER" != "github-actions" && 
-                "$PR_USER" != "github-actions[bot]" && 
-                "$PR_USER" != "appodeal-runner" && 
-                "$PR_USER" != "appodeal-bot" && 
-                ! "$PR_BRANCH" =~ ^release/ && 
-                ! "$PR_BRANCH" =~ ^bot/ ]]; then
-            echo "❌ PR is not from trusted source (user: $PR_USER, branch: $PR_BRANCH)"
-            exit 0
-          fi
-          
+
+          PR_URL="https://github.com/${{ github.repository }}/pull/${PR_NUMBER}"
+          PR_DATA=$(gh pr view "${PR_NUMBER}" --json author,headRefName,state)
+          PR_USER=$(echo "$PR_DATA" | jq -r '.author.login')
+          PR_BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
+          PR_STATE=$(echo "$PR_DATA" | jq -r '.state')
+
           echo "📋 Checking PR: $PR_URL"
           echo "👤 Created by: $PR_USER"
           echo "🌿 Branch: $PR_BRANCH"
-          
-          # Check if PR is already merged
-          PR_STATE=$(gh pr view "$PR_URL" --json state --jq '.state')
+
+          # Same trust list as enable-auto-merge above
+          if [[ "$PR_USER" != "github-actions" &&
+                "$PR_USER" != "github-actions[bot]" &&
+                "$PR_USER" != "appodeal-runner" &&
+                "$PR_USER" != "appodeal-bot" &&
+                ! "$PR_BRANCH" =~ ^release/ &&
+                ! "$PR_BRANCH" =~ ^bot/ ]]; then
+            echo "❌ PR is not from a trusted source"
+            exit 0
+          fi
+
+          # Report the PR either way: if it is already merged the tag job still
+          # has to run, because the merge itself started nothing.
+          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
           if [ "$PR_STATE" = "MERGED" ] || [ "$PR_STATE" = "CLOSED" ]; then
             echo "PR is already $PR_STATE"
             exit 0
           fi
-          
-          # Check if PR is approved
+
           APPROVED=$(gh pr view "$PR_URL" --json reviews --jq '[.reviews[] | select(.state == "APPROVED")] | length > 0')
           if [ "$APPROVED" != "true" ]; then
             echo "⏳ PR is not approved yet"
             exit 0
           fi
-          
-          # Check if all checks passed
-          CHECKS_PASSED=$(gh pr checks "$PR_URL" --json state --jq 'all(.state == "SUCCESS" or .state == "SKIPPED")')
+
+          CHECKS_PASSED=$(gh pr checks "$PR_URL" --json state --jq 'all(.state == "SUCCESS" or .state == "SKIPPED")' 2>/dev/null || echo "true")
           if [ "$CHECKS_PASSED" != "true" ]; then
-            echo "⏳ Some checks are still pending or failed"
-            # Enable auto-merge so it will merge when checks pass
+            echo "⏳ Some checks are pending or failed — arming auto-merge instead"
             gh pr merge "$PR_URL" --auto --squash --delete-branch || true
             exit 0
           fi
-          
-          # All conditions met - merge now
-          echo "✅ All conditions met, merging PR now"
+
+          echo "✅ All conditions met, merging now"
           gh pr merge "$PR_URL" --squash --delete-branch
+
+  # GitHub performs an armed auto-merge moments after the job above finishes, and
+  # that merge produces no events. Wait for it here so the tag job below can run
+  # in the same workflow instead of relying on a trigger that never fires.
+  wait-for-merge:
+    runs-on: ubuntu-latest
+    needs: [enable-auto-merge, merge-approved]
+    if: always() && (needs.enable-auto-merge.outputs.pr != '' || needs.merge-approved.outputs.pr != '')
+    outputs:
+      merged: ${{ steps.wait.outputs.merged }}
+    steps:
+      - name: Wait for the PR to be merged
+        id: wait
+        run: |
+          PR_NUMBER="${{ needs.enable-auto-merge.outputs.pr || needs.merge-approved.outputs.pr }}"
+          echo "⏳ Waiting for PR #${PR_NUMBER} to merge"
+
+          # Auto-merge normally completes within seconds once approval lands.
+          # Give it a few minutes, then give up quietly — a later push to main,
+          # or a manual run of Auto Tag Release, still creates the tag.
+          for attempt in $(seq 1 30); do
+            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+            if [ "$STATE" = "MERGED" ]; then
+              echo "✅ PR #${PR_NUMBER} is merged"
+              echo "merged=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$STATE" = "CLOSED" ]; then
+              echo "PR #${PR_NUMBER} was closed without merging"
+              echo "merged=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "::warning::PR #${PR_NUMBER} did not merge within 5 minutes; no tag created"
+          echo "merged=false" >> "$GITHUB_OUTPUT"
+
+  tag:
+    needs: wait-for-merge
+    if: needs.wait-for-merge.outputs.merged == 'true'
+    uses: ./.github/workflows/tag-release.yml
+    permissions:
+      contents: write
+      pull-requests: write

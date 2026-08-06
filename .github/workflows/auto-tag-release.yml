@@ -1,10 +1,12 @@
 name: Auto Tag Release
 
+# Tags a release when Package.swift lands on main through a path that emits a
+# real push event — a human merge, or a merge made with a PAT.
+#
+# An auto-merge performed with GITHUB_TOKEN emits no such event, so that path is
+# covered by auto-merge.yml calling tag-release.yml directly after it merges.
+
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - main
   push:
     branches:
       - main
@@ -13,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 'Force create tag even if it exists'
+        description: 'Recreate the tag even if it already exists'
         required: false
         type: boolean
         default: false
@@ -23,153 +25,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  auto-tag:
-    runs-on: ubuntu-latest
-    # Run if: PR was merged, or Package.swift was pushed to main, or manual trigger
-    if: |
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch'
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: main  # Always use main branch for tag creation
-          
-      - name: Extract version from Package.swift
-        id: extract_version
-        run: |
-          # Extract version from Package.swift URL patterns
-          # Looking for patterns like /4.3.0/ or /4.3.0-alpha.1/ in the URLs
-          VERSION=$(grep -oE '/[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.\-]+)?/' Package.swift | head -1 | tr -d '/')
-          
-          if [ -z "$VERSION" ]; then
-            echo "❌ No version found in Package.swift"
-            exit 1
-          fi
-          
-          echo "✅ Found version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if git rev-parse "refs/tags/${{ steps.extract_version.outputs.version }}" >/dev/null 2>&1; then
-            echo "⚠️ Tag ${{ steps.extract_version.outputs.version }} already exists"
-            echo "exists=true" >> $GITHUB_OUTPUT
-            
-            # Check if we should force create
-            if [ "${{ github.event.inputs.force }}" = "true" ]; then
-              echo "🔄 Force flag set, will delete and recreate tag"
-              git tag -d "${{ steps.extract_version.outputs.version }}"
-              git push origin --delete "${{ steps.extract_version.outputs.version }}" || true
-              echo "exists=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "✅ Tag ${{ steps.extract_version.outputs.version }} does not exist, will create"
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Get PR information
-        id: pr_info
-        if: steps.check_tag.outputs.exists == 'false'
-        run: |
-          # Try to get PR info if this was triggered by a PR
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-            echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
-            echo "pr_merged_by=${{ github.event.pull_request.merged_by.login }}" >> $GITHUB_OUTPUT
-          else
-            # Find the most recent PR that touched Package.swift
-            PR_NUMBER=$(gh pr list --state merged --limit 10 --json number,files --jq '.[] | select(.files[] | contains("Package.swift")) | .number' | head -1)
-            if [ -n "$PR_NUMBER" ]; then
-              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-              PR_DATA=$(gh pr view "$PR_NUMBER" --json title,author,mergedBy)
-              echo "pr_title=$(echo "$PR_DATA" | jq -r .title)" >> $GITHUB_OUTPUT
-              echo "pr_author=$(echo "$PR_DATA" | jq -r .author.login)" >> $GITHUB_OUTPUT
-              echo "pr_merged_by=$(echo "$PR_DATA" | jq -r .mergedBy.login)" >> $GITHUB_OUTPUT
-            else
-              echo "pr_number=" >> $GITHUB_OUTPUT
-              echo "pr_title=Direct push to main" >> $GITHUB_OUTPUT
-              echo "pr_author=${{ github.actor }}" >> $GITHUB_OUTPUT
-              echo "pr_merged_by=${{ github.actor }}" >> $GITHUB_OUTPUT
-            fi
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Create and push tag
-        if: steps.check_tag.outputs.exists == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          VERSION="${{ steps.extract_version.outputs.version }}"
-          
-          # Create the annotated tag. Each -m becomes its own paragraph, which
-          # keeps every line indented inside this block scalar — a heredoc body
-          # or terminator at column 0 would close the scalar early and make the
-          # whole workflow file invalid YAML (the workflow then fails to parse
-          # and no tag is ever created).
-          if [ -n "${{ steps.pr_info.outputs.pr_number }}" ]; then
-            git tag -a "$VERSION" \
-              -m "Release $VERSION" \
-              -m "Auto-generated from PR #${{ steps.pr_info.outputs.pr_number }}" \
-              -m "PR Title: ${{ steps.pr_info.outputs.pr_title }}" \
-              -m "PR Author: ${{ steps.pr_info.outputs.pr_author }}" \
-              -m "Merged by: ${{ steps.pr_info.outputs.pr_merged_by }}" \
-              -m "Commit: ${{ github.sha }}"
-          else
-            git tag -a "$VERSION" \
-              -m "Release $VERSION" \
-              -m "Auto-generated from direct push to main" \
-              -m "Author: ${{ github.actor }}" \
-              -m "Commit: ${{ github.sha }}"
-          fi
-
-          # Push the tag
-          git push origin "$VERSION"
-          
-          echo "✅ Successfully created and pushed tag: $VERSION"
-          
-      - name: Comment on PR with tag info
-        if: steps.check_tag.outputs.exists == 'false' && steps.pr_info.outputs.pr_number != ''
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const version = '${{ steps.extract_version.outputs.version }}';
-            const prNumber = ${{ steps.pr_info.outputs.pr_number }};
-            
-            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}.git`;
-
-            // Assembled line by line rather than as one multi-line template
-            // literal: every line has to stay indented inside this block scalar.
-            const body = [
-              '## 🎉 Release Tag Created',
-              '',
-              `**Version:** \`${version}\``,
-              '',
-              'The Swift Package is now available at:',
-              '```swift',
-              `.package(url: "${repoUrl}", exact: "${version}")`,
-              '```',
-              '',
-              '**Installation:**',
-              '1. In Xcode: File → Add Package Dependencies',
-              `2. Enter the repository URL: \`${repoUrl}\``,
-              `3. Select version: \`${version}\``,
-              '',
-              '---',
-              '*This tag was automatically created by GitHub Actions*',
-            ].join('\n');
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body
-            });
+  tag:
+    uses: ./.github/workflows/tag-release.yml
+    with:
+      force: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
+    permissions:
+      contents: write
+      pull-requests: write
