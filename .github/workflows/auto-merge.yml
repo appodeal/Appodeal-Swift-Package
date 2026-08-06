@@ -49,14 +49,45 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "📋 Enabling auto-merge for PR: $PR_URL"
+          echo "📋 Merging PR: $PR_URL"
           echo "👤 Created by: ${{ github.event.pull_request.user.login }}"
           echo "🌿 Branch: ${{ github.event.pull_request.head.ref }}"
 
-          gh pr merge "$PR_URL" --auto --squash --delete-branch
-
+          # Report the PR before attempting anything, so the wait-and-tag jobs run
+          # even if the merge itself has to happen later.
           echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "✅ Auto-merge enabled"
+
+          # Preferred path: hand the merge to GitHub, which performs it once the
+          # branch protection conditions are met.
+          if gh pr merge "$PR_URL" --auto --squash --delete-branch 2>/tmp/arm.err; then
+            echo "✅ Auto-merge armed"
+            exit 0
+          fi
+
+          cat /tmp/arm.err
+
+          # Arming can be refused for several ordinary reasons — "Auto merge is not
+          # allowed for this repository" when the setting is off, or "Pull request is
+          # in unstable status" while a check is still running or red. None of them
+          # mean the PR is broken, so none of them fail this job.
+          #
+          # Failing here is actively harmful: a red run of this workflow is itself a
+          # failing check, which puts the next PR into unstable status, which refuses
+          # arming again. PR #5 hit exactly that loop — it merged fine, yet the run
+          # was red.
+          #
+          # Try a direct merge instead. Branch protection still decides whether that
+          # is permitted, so nothing is bypassed; if it is not allowed yet,
+          # merge-approved retries on the next event.
+          echo "::warning::Could not arm auto-merge; attempting a direct merge instead"
+
+          if gh pr merge "$PR_URL" --squash --delete-branch 2>/tmp/merge.err; then
+            echo "✅ Merged"
+            exit 0
+          fi
+
+          cat /tmp/merge.err
+          echo "::warning::Could not merge yet (likely waiting on approval or checks); will retry on the next event"
 
   merge-approved:
     runs-on: ubuntu-latest
@@ -175,9 +206,21 @@ jobs:
           echo "::warning::PR #${PR_NUMBER} did not merge within 5 minutes; no tag created"
           echo "merged=false" >> "$GITHUB_OUTPUT"
 
+  # Runs unconditionally rather than gating on wait-for-merge's `merged` output.
+  #
+  # That gate did not work: on PR #4 wait-for-merge logged "PR #4 is merged" and
+  # set the output, yet this job was still skipped, in both the pull_request and
+  # the workflow_run run. Rather than keep guessing at the expression, drop it —
+  # it was never load-bearing. tag-release.yml decides from the state of main and
+  # the tags that already exist, so it is idempotent: if nothing merged, main is
+  # unchanged and the newest tag already serves that manifest, and the job reports
+  # "nothing to do". If main has drifted from its newest tag, it deserves a tag
+  # regardless of what this particular PR did.
+  #
+  # needs: is kept purely for ordering, so tagging happens after the wait.
   tag:
     needs: wait-for-merge
-    if: needs.wait-for-merge.outputs.merged == 'true'
+    if: always()
     uses: ./.github/workflows/tag-release.yml
     permissions:
       contents: write
