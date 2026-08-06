@@ -109,33 +109,27 @@ jobs:
           
           VERSION="${{ steps.extract_version.outputs.version }}"
           
-          # Build tag message
+          # Create the annotated tag. Each -m becomes its own paragraph, which
+          # keeps every line indented inside this block scalar — a heredoc body
+          # or terminator at column 0 would close the scalar early and make the
+          # whole workflow file invalid YAML (the workflow then fails to parse
+          # and no tag is ever created).
           if [ -n "${{ steps.pr_info.outputs.pr_number }}" ]; then
-            TAG_MESSAGE=$(cat <<EOF
-Release $VERSION
-
-Auto-generated from PR #${{ steps.pr_info.outputs.pr_number }}
-
-PR Title: ${{ steps.pr_info.outputs.pr_title }}
-PR Author: ${{ steps.pr_info.outputs.pr_author }}
-Merged by: ${{ steps.pr_info.outputs.pr_merged_by }}
-Commit: ${{ github.sha }}
-EOF
-)
+            git tag -a "$VERSION" \
+              -m "Release $VERSION" \
+              -m "Auto-generated from PR #${{ steps.pr_info.outputs.pr_number }}" \
+              -m "PR Title: ${{ steps.pr_info.outputs.pr_title }}" \
+              -m "PR Author: ${{ steps.pr_info.outputs.pr_author }}" \
+              -m "Merged by: ${{ steps.pr_info.outputs.pr_merged_by }}" \
+              -m "Commit: ${{ github.sha }}"
           else
-            TAG_MESSAGE=$(cat <<EOF
-Release $VERSION
-
-Auto-generated from direct push to main
-Author: ${{ github.actor }}
-Commit: ${{ github.sha }}
-EOF
-)
+            git tag -a "$VERSION" \
+              -m "Release $VERSION" \
+              -m "Auto-generated from direct push to main" \
+              -m "Author: ${{ github.actor }}" \
+              -m "Commit: ${{ github.sha }}"
           fi
-          
-          # Create annotated tag with detailed message
-          git tag -a "$VERSION" -m "$TAG_MESSAGE"
-          
+
           # Push the tag
           git push origin "$VERSION"
           
@@ -150,24 +144,32 @@ EOF
             const version = '${{ steps.extract_version.outputs.version }}';
             const prNumber = ${{ steps.pr_info.outputs.pr_number }};
             
+            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}.git`;
+
+            // Assembled line by line rather than as one multi-line template
+            // literal: every line has to stay indented inside this block scalar.
+            const body = [
+              '## 🎉 Release Tag Created',
+              '',
+              `**Version:** \`${version}\``,
+              '',
+              'The Swift Package is now available at:',
+              '```swift',
+              `.package(url: "${repoUrl}", exact: "${version}")`,
+              '```',
+              '',
+              '**Installation:**',
+              '1. In Xcode: File → Add Package Dependencies',
+              `2. Enter the repository URL: \`${repoUrl}\``,
+              `3. Select version: \`${version}\``,
+              '',
+              '---',
+              '*This tag was automatically created by GitHub Actions*',
+            ].join('\n');
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: `## 🎉 Release Tag Created
-
-**Version:** \`${version}\`
-
-The Swift Package is now available at:
-\`\`\`swift
-.package(url: "https://github.com/${context.repo.owner}/${context.repo.repo}.git", exact: "${version}")
-\`\`\`
-
-**Installation:**
-1. In Xcode: File → Add Package Dependencies
-2. Enter the repository URL: \`https://github.com/${context.repo.owner}/${context.repo.repo}.git\`
-3. Select version: \`${version}\`
-
----
-*This tag was automatically created by GitHub Actions*`
+              body
             });

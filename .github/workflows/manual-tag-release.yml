@@ -73,12 +73,14 @@ jobs:
           
           VERSION="${{ github.event.inputs.version }}"
           
-          # Create annotated tag
-          git tag -a "$VERSION" -m "Release $VERSION
+          # Create annotated tag. Each -m becomes its own paragraph, which keeps
+          # every line indented inside this block scalar — a line at column 0
+          # would terminate it and make the whole workflow file invalid YAML.
+          git tag -a "$VERSION" \
+            -m "Release $VERSION" \
+            -m "Manual release created by: ${{ github.actor }}" \
+            -m "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-Manual release created by: ${{ github.actor }}
-Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
           # Push the tag
           git push origin "$VERSION"
           
@@ -91,25 +93,33 @@ Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
           script: |
             const version = '${{ github.event.inputs.version }}';
             
+            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}.git`;
+
+            // Assembled line by line rather than as one multi-line template
+            // literal: every line has to stay indented inside this block scalar.
+            const body = [
+              '## Swift Package Manager',
+              '',
+              'Add this package to your project:',
+              '```swift',
+              `.package(url: "${repoUrl}", exact: "${version}")`,
+              '```',
+              '',
+              '### Installation',
+              '1. In Xcode: **File → Add Package Dependencies**',
+              `2. Enter: \`${repoUrl}\``,
+              `3. Select version: \`${version}\``,
+              '',
+              '---',
+              '*Released by @${{ github.actor }}*',
+            ].join('\n');
+
             const release = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: version,
               name: `Version ${version}`,
-              body: `## Swift Package Manager
-
-Add this package to your project:
-\`\`\`swift
-.package(url: "https://github.com/${context.repo.owner}/${context.repo.repo}.git", exact: "${version}")
-\`\`\`
-
-### Installation
-1. In Xcode: **File → Add Package Dependencies**
-2. Enter: \`https://github.com/${context.repo.owner}/${context.repo.repo}.git\`
-3. Select version: \`${version}\`
-
----
-*Released by @${{ github.actor }}*`,
+              body,
               draft: false,
               prerelease: version.includes('-')
             });
