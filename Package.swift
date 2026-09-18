@@ -8,7 +8,13 @@ let package = Package(
         .library(name: "AppodealSDK", targets: ["AppodealSDK"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
+        // swift-protobuf is deliberately absent. The core target links it from source and
+        // builds as a static library, so libtool has already folded the whole runtime into
+        // Appodeal.xcframework — declaring the package here compiled and linked a second copy
+        // and every consumer died on `ld: 5905 duplicate symbols`, each pair one object in
+        // SwiftProtobuf.o and one in Appodeal.framework/Appodeal(...). The core imports it
+        // @_implementationOnly, so it is named by neither the public API nor the shipped
+        // .swiftinterface and consumers never need the module.
         .package(
             url: "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
             from: "3.1.0"
@@ -21,7 +27,6 @@ let package = Package(
                 "Appodeal",
                 "AppodealMediationCore",
                 "StackConsentManager",
-                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
                 .product(name: "GoogleUserMessagingPlatform",
                          package: "swift-package-manager-google-user-messaging-platform"),
             ],
@@ -48,17 +53,17 @@ let package = Package(
         .binaryTarget(
             name: "Appodeal",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/Appodeal/4.4.0/Appodeal.xcframework.zip",
-            checksum: "cbc2e52ef4784b5a475b88a307b4d2b3fdf75ca7dce469f84ae0760fd8f1847c"
+            checksum: "82b0b0248f9ab212be674d976960d53740320fa67e7785a6def942b96e4c8536"
         ),
         .binaryTarget(
             name: "AppodealMediationCore",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/Appodeal/4.4.0/AppodealMediationCore.xcframework.zip",
-            checksum: "8c9abcce846a34e682862400db06815348d69de3705ed2204e2d098921793779"
+            checksum: "443a79d6e8dfdb1f3ed4d6646da66704bc392103cc46cb58adee179d0ab065df"
         ),
         .binaryTarget(
             name: "StackConsentManager",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/Appodeal/4.4.0/StackConsentManager.xcframework.zip",
-            checksum: "3590c00e47dbd49b3ef34556b086e0c072c6f793adb2ca6bac8fe05f4ee1377e"
+            checksum: "7ff0b84f8f8b0c252ecda0c0f94f53e620022434f88c3fde7e83dd9c11cc7d4e"
         ),
     ]
 )
