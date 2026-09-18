@@ -48,17 +48,17 @@ let package = Package(
         .binaryTarget(
             name: "Appodeal",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/Appodeal/4.4.0/Appodeal.xcframework.zip",
-            checksum: "28b705e37278bb285c34635cb533026c30395c6852de4d4bd50afc861ecbae84"
+            checksum: "cbc2e52ef4784b5a475b88a307b4d2b3fdf75ca7dce469f84ae0760fd8f1847c"
         ),
         .binaryTarget(
             name: "AppodealMediationCore",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/Appodeal/4.4.0/AppodealMediationCore.xcframework.zip",
-            checksum: "574cea5a585aba13faa77fe52057ed6afce2d34abd630d38844282b3ee4c2cc6"
+            checksum: "8c9abcce846a34e682862400db06815348d69de3705ed2204e2d098921793779"
         ),
         .binaryTarget(
             name: "StackConsentManager",
             url: "https://appodeal-ios.s3.us-west-1.amazonaws.com/Appodeal/SPM/Appodeal/4.4.0/StackConsentManager.xcframework.zip",
-            checksum: "329a686e3f42eb879ef8733c83d06a6ce9b100c52437ea797db0b305efc4d5f5"
+            checksum: "3590c00e47dbd49b3ef34556b086e0c072c6f793adb2ca6bac8fe05f4ee1377e"
         ),
     ]
 )
